@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Tap Pets</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: linear-gradient(160deg, #1e1b4b, #312e81 50%, #4c1d95);
+    color: #fff; min-height: 100vh; user-select: none; -webkit-user-select: none;
+    touch-action: manipulation; overflow-x: hidden;
+  }
+  .wrap { max-width: 520px; margin: 0 auto; padding: 16px 14px 40px; }
+  header { text-align: center; margin-bottom: 8px; }
+  h1 { font-size: 20px; letter-spacing: 1px; opacity: .85; }
+  #coins { font-size: 44px; font-weight: 800; margin-top: 4px; color: #fde047; text-shadow: 0 3px 0 #a16207; }
+  .stats { display: flex; justify-content: center; gap: 14px; font-size: 14px; opacity: .9; margin-top: 2px; flex-wrap: wrap; }
+  .stats span b { color: #fde047; }
+  #tapZone { display: flex; justify-content: center; margin: 22px 0; position: relative; }
+  #tapBtn {
+    width: 200px; height: 200px; border-radius: 50%; border: none; cursor: pointer;
+    background: radial-gradient(circle at 35% 30%, #fef08a, #facc15 45%, #ca8a04);
+    box-shadow: 0 10px 0 #854d0e, 0 18px 30px rgba(0,0,0,.4);
+    font-size: 84px; transition: transform .06s; touch-action: manipulation;
+  }
+  #tapBtn:active, #tapBtn.pressed { transform: translateY(6px) scale(.96); box-shadow: 0 4px 0 #854d0e, 0 10px 20px rgba(0,0,0,.4); }
+  #petParade { text-align: center; font-size: 30px; min-height: 40px; margin-top: -6px; }
+  #petParade span { display: inline-block; animation: bob 1.4s ease-in-out infinite; margin: 0 4px; }
+  #petParade span:nth-child(2) { animation-delay: .25s; }
+  #petParade span:nth-child(3) { animation-delay: .5s; }
+  @keyframes bob { 50% { transform: translateY(-6px); } }
+  .float {
+    position: fixed; pointer-events: none; font-weight: 800; font-size: 22px; color: #fde047;
+    text-shadow: 0 2px 0 #000; animation: floatUp .8s ease-out forwards; z-index: 50;
+  }
+  @keyframes floatUp { to { transform: translateY(-70px); opacity: 0; } }
+  nav { display: flex; gap: 6px; margin-top: 14px; }
+  nav button {
+    flex: 1; padding: 10px 4px; border: none; border-radius: 12px; font-weight: 700; font-size: 14px;
+    background: rgba(255,255,255,.12); color: #fff; cursor: pointer;
+  }
+  nav button.active { background: #fde047; color: #1e1b4b; }
+  .panel { display: none; margin-top: 12px; }
+  .panel.active { display: block; }
+  .card {
+    background: rgba(255,255,255,.1); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .card .icon { font-size: 34px; width: 44px; text-align: center; }
+  .card .info { flex: 1; min-width: 0; }
+  .card .title { font-weight: 700; }
+  .card .desc { font-size: 13px; opacity: .8; }
+  .buy {
+    border: none; border-radius: 10px; padding: 10px 12px; font-weight: 800; cursor: pointer; min-width: 92px;
+    background: #22c55e; color: #fff; font-size: 14px;
+  }
+  .buy:disabled { background: #4b5563; color: #9ca3af; cursor: not-allowed; }
+  .buy.red { background: #ef4444; }
+  .buy.small { min-width: 0; padding: 7px 9px; font-size: 12px; }
+  .petGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 8px; }
+  .pet {
+    background: rgba(255,255,255,.1); border-radius: 12px; padding: 8px; text-align: center; border: 2px solid transparent;
+  }
+  .pet.equipped { border-color: #fde047; background: rgba(253,224,71,.15); }
+  .pet .e { font-size: 34px; }
+  .pet .n { font-weight: 700; font-size: 13px; }
+  .pet .b { font-size: 12px; opacity: .85; margin-bottom: 6px; }
+  .pet .row { display: flex; gap: 4px; justify-content: center; }
+  .note { font-size: 13px; opacity: .8; margin: 4px 2px 10px; }
+  .Common { color: #d1d5db; } .Uncommon { color: #86efac; } .Rare { color: #93c5fd; }
+  .Epic { color: #c4b5fd; } .Legendary { color: #fcd34d; } .Mythic { color: #f9a8d4; }
+  #modal {
+    position: fixed; inset: 0; background: rgba(10,8,30,.94); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center;
+    flex-direction: column; z-index: 100; text-align: center; padding: 20px;
+  }
+  #modal.show { display: flex; }
+  #modalEgg { font-size: 120px; }
+  #modalEgg.shake { animation: shake .15s linear 6; }
+  @keyframes shake { 25% { transform: rotate(-14deg); } 75% { transform: rotate(14deg); } }
+  #modalEgg.pop { animation: pop .4s ease-out; }
+  @keyframes pop { 0% { transform: scale(.2); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  #modalText { font-size: 22px; line-height: 1.5; font-weight: 800; margin-top: 10px; min-height: 64px; }
+  #modalHint { opacity: .7; margin-top: 8px; font-size: 14px; visibility: hidden; }
+  #confirmBox {
+    position: fixed; inset: 0; background: rgba(10,8,30,.9); display: none; align-items: center; justify-content: center;
+    z-index: 150; padding: 20px;
+  }
+  #confirmBox.show { display: flex; }
+  .cbInner { background: #312e81; border-radius: 16px; padding: 20px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+  #cbText { font-size: 17px; line-height: 1.45; margin-bottom: 16px; }
+  .cbBtns { display: flex; gap: 10px; justify-content: center; }
+  .cbBtns .buy { flex: 1; padding: 12px; font-size: 16px; }
+  h2.shopTitle { font-size: 18px; margin: 18px 2px 4px; }
+  .tokens { color: #67e8f9; font-weight: 800; }
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #111827; padding: 10px 16px;
+    border-radius: 10px; font-weight: 600; opacity: 0; transition: opacity .25s; z-index: 200; pointer-events: none;
+    max-width: 90%; text-align: center;
+  }
+  #toast.show { opacity: 1; }
+  .float.crit { color: #f87171; font-size: 28px; }
+  .btnCol { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+  .toolRow { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  #modalEgg.multi { font-size: 76px; letter-spacing: 6px; }
+  #modalText small { opacity: .85; font-size: 15px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🐾 TAP PETS 🐾</h1>
+    <div id="coins">0</div>
+    <div class="stats">
+      <span>Per tap: <b id="perTap">1</b></span>
+      <span>Per second: <b id="perSec">0</b></span>
+      <span>Boost: <b id="mult">x1</b></span>
+    </div>
+  </header>
+
+  <div id="tapZone"><button id="tapBtn" aria-label="Tap">🪙</button></div>
+  <div id="petParade"></div>
+
+  <nav>
+    <button data-tab="upgrades" class="active">Upgrades</button>
+    <button data-tab="eggs">Eggs</button>
+    <button data-tab="pets">Pets</button>
+    <button data-tab="rebirth">Rebirth</button>
+  </nav>
+
+  <section id="upgrades" class="panel active"></section>
+  <section id="eggs" class="panel"></section>
+  <section id="pets" class="panel"></section>
+  <section id="rebirth" class="panel"></section>
+</div>
+
+<div id="modal"><div id="modalEgg">🥚</div><div id="modalText"></div><div id="modalHint">Tap anywhere to continue</div></div>
+<div id="confirmBox"><div class="cbInner"><div id="cbText"></div>
+  <div class="cbBtns"><button class="buy red" id="cbNo">Cancel</button><button class="buy" id="cbYes">Yes</button></div></div></div>
+<div id="toast"></div>
+
+<script>
+(() => {
+  const SAVE_KEY = "tapPetsSave_v1";
+  const BASE_EQUIPPED = 3;
+  const MAX_PETS = 100;
+  const OFFLINE_CAP_SEC = 2 * 60 * 60;
+
+  const PETS = {
+    dog:     { name: "Dog",           emoji: "🐶", rarity: "Common",    boost: 0.1 },
+    cat:     { name: "Cat",           emoji: "🐱", rarity: "Uncommon",  boost: 0.2 },
+    fox:     { name: "Fox",           emoji: "🦊", rarity: "Rare",      boost: 0.4 },
+    unicorn: { name: "Unicorn",       emoji: "🦄", rarity: "Legendary", boost: 1.5 },
+    panda:   { name: "Panda",         emoji: "🐼", rarity: "Rare",      boost: 0.6 },
+    lion:    { name: "Lion",          emoji: "🦁", rarity: "Epic",      boost: 1 },
+    dragon:  { name: "Dragon",        emoji: "🐉", rarity: "Legendary", boost: 2.5 },
+    alien:   { name: "Alien",         emoji: "👾", rarity: "Mythic",    boost: 6 },
+    fish:    { name: "Fish",          emoji: "🐠", rarity: "Uncommon",  boost: 1.5 },
+    octopus: { name: "Octopus",       emoji: "🐙", rarity: "Rare",      boost: 2.5 },
+    shark:   { name: "Shark",         emoji: "🦈", rarity: "Epic",      boost: 4 },
+    whale:   { name: "Whale",         emoji: "🐳", rarity: "Legendary", boost: 10 },
+    robot:   { name: "Robot",         emoji: "🤖", rarity: "Rare",      boost: 6 },
+    ufo:     { name: "UFO",           emoji: "🛸", rarity: "Epic",      boost: 12 },
+    comet:   { name: "Comet",         emoji: "☄️", rarity: "Legendary", boost: 25 },
+    galaxy:  { name: "Galaxy",        emoji: "🌌", rarity: "Mythic",    boost: 60 },
+    trex:    { name: "T-Rex",         emoji: "🦖", rarity: "Epic",      boost: 40 },
+    kraken:  { name: "Kraken",        emoji: "🦑", rarity: "Legendary", boost: 90 },
+    gdragon: { name: "Golden Dragon", emoji: "🐲", rarity: "Legendary", boost: 200 },
+    ghost:   { name: "Ghost King",    emoji: "👻", rarity: "Mythic",    boost: 600 },
+  };
+
+  const EGGS = [
+    { id: "basic",  name: "Basic Egg",   emoji: "🥚", cost: 250,
+      drops: [["dog", 60], ["cat", 30], ["fox", 9], ["unicorn", 1]] },
+    { id: "golden", name: "Golden Egg",  emoji: "🌟", cost: 25000,
+      drops: [["panda", 60], ["lion", 32], ["dragon", 7.5], ["alien", 0.5]] },
+    { id: "ocean",  name: "Ocean Egg",   emoji: "🌊", cost: 500000,
+      drops: [["fish", 60], ["octopus", 30], ["shark", 9], ["whale", 1]] },
+    { id: "space",  name: "Space Egg",   emoji: "🪐", cost: 10000000,
+      drops: [["robot", 60], ["ufo", 32], ["comet", 7.5], ["galaxy", 0.5]] },
+    { id: "rainbow", name: "Rainbow Egg", emoji: "🌈", cost: 250000000,
+      drops: [["trex", 60], ["kraken", 32], ["gdragon", 7.5], ["ghost", 0.5]] },
+  ];
+
+  // keep = survives a rebirth
+  const UPGRADES = [
+    { id: "tap", icon: "👆", name: "Stronger Taps", max: Infinity, keep: false,
+      desc: l => `+1 base coin per tap (now ${1 + l})`,
+      cost: l => Math.floor(25 * Math.pow(1.65, l)) },
+    { id: "auto", icon: "🤖", name: "Auto Tapper", max: Infinity, keep: false,
+      desc: l => `+1 base coin every second, even while you're away for up to 2 hours (now ${l}/s)`,
+      cost: l => Math.floor(100 * Math.pow(1.75, l)) },
+    { id: "crit", icon: "💥", name: "Lucky Taps", max: 20, keep: false,
+      desc: l => `Each tap has a chance to be a critical hit worth 5x (now ${Math.round(l * 1.5 * 10) / 10}%, max 30%)`,
+      cost: l => Math.floor(500 * Math.pow(2, l)) },
+    { id: "golden", icon: "✨", name: "Golden Touch", max: Infinity, keep: false,
+      desc: l => `+10% to all coins you earn (now +${l * 10}%)`,
+      cost: l => Math.floor(5000 * Math.pow(2.3, l)) },
+    { id: "luck", icon: "🍀", name: "Egg Luck", max: 10, keep: false,
+      desc: l => `Better odds of rare pets from every egg (now +${l * 15}%, max +150%)`,
+      cost: l => Math.floor(10000 * Math.pow(2.5, l)) },
+    { id: "slots", icon: "🎒", name: "Extra Pet Slot", max: 3, keep: true,
+      desc: l => `Equip one more pet (now ${BASE_EQUIPPED + l}, max ${BASE_EQUIPPED + 3}). Kept after rebirth`,
+      cost: l => 50000 * Math.pow(15, l) },
+    { id: "triple", icon: "🥚", name: "Triple Hatch", max: 1, keep: true,
+      desc: l => l ? "Unlocked! Use the x3 button on any egg" : "Hatch 3 eggs at once. Kept after rebirth",
+      cost: () => 250000 },
+  ];
+
+  // Rebirth shop: bought with tokens from rebirthing, never resets
+  const headStart = l => l ? Math.pow(10, l + 2) : 0;
+  const SHOP = [
+    { id: "boost", icon: "💰", name: "Coin Boost", max: 10,
+      desc: l => `+50% to all coins, forever (now +${l * 50}%)`, cost: l => 2 * (l + 1) },
+    { id: "tokens", icon: "🎟️", name: "Token Bonus", max: 5,
+      desc: l => `+1 extra token every time you rebirth (now +${l})`, cost: l => 4 * (l + 1) },
+    { id: "start", icon: "🚀", name: "Head Start", max: 5,
+      desc: l => `Start every rebirth with coins (now ${fmt(headStart(l))}${l < 5 ? `, next ${fmt(headStart(l + 1))}` : ""})`,
+      cost: l => [2, 4, 7, 11, 16][l] },
+    { id: "autostart", icon: "⚙️", name: "Auto Start", max: 4,
+      desc: l => `Start every rebirth with Auto Tapper at Lv ${l * 5}${l < 4 ? ` (next Lv ${(l + 1) * 5})` : ""}`, cost: l => 3 * (l + 1) },
+    { id: "keepgold", icon: "✨", name: "Golden Memory", max: 1,
+      desc: l => l ? "Owned. Golden Touch no longer resets when you rebirth" : "Keep your Golden Touch levels when you rebirth", cost: () => 12 },
+    { id: "luck", icon: "🍀", name: "Super Luck", max: 4,
+      desc: l => `Extra +25% rare pet odds on every egg (now +${l * 25}%)`, cost: l => 4 * (l + 1) },
+    { id: "slots", icon: "🎒", name: "Mega Pet Slot", max: 2,
+      desc: l => `Equip one more pet on top of your normal slots (now +${l})`, cost: l => [15, 30][l] },
+  ];
+  const freshShop = () => Object.fromEntries(SHOP.map(u => [u.id, 0]));
+  const freshUp = () => Object.fromEntries(UPGRADES.map(u => [u.id, 0]));
+  const fresh = () => ({ coins: 0, up: freshUp(), shop: freshShop(), tokens: 0, rebirths: 0, pets: [], nextId: 1, lastSeen: Date.now() });
+  let state = load();
+
+  // ---------- math ----------
+  const lvl = id => state.up[id] || 0;
+  const upCost = u => u.cost(lvl(u.id));
+  const shopLvl = id => (state.shop && state.shop[id]) || 0;
+  const maxEquipped = () => BASE_EQUIPPED + lvl("slots") + shopLvl("slots");
+  const tapPower = () => 1 + lvl("tap");
+  const autoRate = () => lvl("auto");
+  const critChance = () => lvl("crit") * 0.015;
+  const rebirthCost = () => 100000 * Math.pow(5, state.rebirths);
+  const rebirthBonus = (r = state.rebirths) => Math.pow(1.5, r);
+  const petBoost = () => 1 + state.pets.filter(p => p.equipped).reduce((s, p) => s + PETS[p.type].boost, 0);
+  const multiplier = () => petBoost() * rebirthBonus() * (1 + 0.1 * lvl("golden")) * (1 + 0.5 * shopLvl("boost"));
+  const perTap = () => tapPower() * multiplier();
+  const perSec = () => autoRate() * multiplier();
+  const equippedCount = () => state.pets.filter(p => p.equipped).length;
+  const luckFactor = () => 1 + 0.15 * lvl("luck") + 0.25 * shopLvl("luck");
+  // 1 token, +1 per Token Bonus level, +1 for every doubling of coins above the rebirth price
+  const tokensForRebirth = () => 1 + shopLvl("tokens") +
+    (state.coins >= rebirthCost() ? Math.floor(Math.log2(state.coins / rebirthCost())) : 0);
+  // luck boosts every drop except the most common one
+  const eggWeights = egg => egg.drops.map(([t, c], i) => [t, i === 0 ? c : c * luckFactor()]);
+
+  function fmt(n) {
+    n = Math.floor(n);
+    const units = [[1e15, "Qa"], [1e12, "T"], [1e9, "B"], [1e6, "M"], [1e3, "K"]];
+    for (const [v, s] of units) if (n >= v) return (n / v).toFixed(n / v < 100 ? 1 : 0).replace(/\.0$/, "") + s;
+    return String(n);
+  }
+  const fmtRate = n => n < 100 ? String(Math.round(n * 10) / 10) : fmt(n);
+  const fmtMult = x => "x" + (x < 1000 ? Math.round(x * 10) / 10 : fmt(x));
+
+  // ---------- save / load ----------
+  function load() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return fresh();
+      const data = JSON.parse(raw);
+      const s = Object.assign(fresh(), data);
+      s.up = Object.assign(freshUp(), data.up || {});
+      s.shop = Object.assign(freshShop(), data.shop || {});
+      // players who rebirthed before the shop existed get 1 token per rebirth
+      if (data.tokens === undefined) s.tokens = s.rebirths || 0;
+      // saves from the first version stored these separately
+      if (data.tapLevel) s.up.tap = Math.max(s.up.tap, data.tapLevel);
+      if (data.autoLevel) s.up.auto = Math.max(s.up.auto, data.autoLevel);
+      delete s.tapLevel; delete s.autoLevel;
+      s.pets = (s.pets || []).filter(p => PETS[p.type]);
+      return s;
+    } catch (e) {
+      return fresh();
+    }
+  }
+  function save() {
+    state.lastSeen = Date.now();
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  // ---------- UI helpers ----------
+  const $ = id => document.getElementById(id);
+  let toastTimer;
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  function ask(message, yesLabel = "Yes") {
+    return new Promise(resolve => {
+      const box = $("confirmBox");
+      $("cbText").textContent = message;
+      $("cbYes").textContent = yesLabel;
+      box.classList.add("show");
+      const done = ok => { box.classList.remove("show"); resolve(ok); };
+      $("cbYes").onclick = () => done(true);
+      $("cbNo").onclick = () => done(false);
+    });
+  }
+
+  function floatText(x, y, text, crit) {
+    const el = document.createElement("div");
+    el.className = "float" + (crit ? " crit" : "");
+    el.textContent = text;
+    el.style.left = (x - 20 + (Math.random() * 30 - 15)) + "px";
+    el.style.top = (y - 30) + "px";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 800);
+  }
+
+  // ---------- tapping ----------
+  const tapBtn = $("tapBtn");
+  function doTap(x, y) {
+    const crit = Math.random() < critChance();
+    const gain = perTap() * (crit ? 5 : 1);
+    state.coins += gain;
+    floatText(x, y, (crit ? "CRIT! +" : "+") + fmtRate(gain), crit);
+    refreshNumbers();
+  }
+  tapBtn.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    doTap(e.clientX, e.clientY);
+    tapBtn.classList.add("pressed");
+    setTimeout(() => tapBtn.classList.remove("pressed"), 70);
+  });
+  tapBtn.addEventListener("keydown", e => {
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      if (e.repeat) return;
+      const r = tapBtn.getBoundingClientRect();
+      doTap(r.left + r.width / 2, r.top + 20);
+    }
+  });
+
+  // ---------- tabs ----------
+  document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll("nav button").forEach(x => x.classList.toggle("active", x === b));
+    document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.id === b.dataset.tab));
+  }));
+
+  // ---------- panels ----------
+  function renderUpgrades() {
+    $("upgrades").innerHTML = UPGRADES.map(u => {
+      const l = lvl(u.id), maxed = l >= u.max;
+      const lvText = u.max === 1 ? "" : ` (Lv ${l}${u.max !== Infinity ? "/" + u.max : ""})`;
+      return `<div class="card"><div class="icon">${u.icon}</div><div class="info">
+        <div class="title">${u.name}${lvText}</div><div class="desc">${u.desc(l)}</div></div>
+        <button class="buy" data-up="${u.id}" ${maxed ? "disabled" : ""}>${maxed ? "MAX" : fmt(upCost(u))}</button></div>`;
+    }).join("");
+    $("upgrades").querySelectorAll("[data-up]").forEach(b => b.onclick = () => buyUpgrade(b.dataset.up));
+  }
+
+  function buyUpgrade(id) {
+    const u = UPGRADES.find(x => x.id === id);
+    if (!u || lvl(id) >= u.max || state.coins < upCost(u)) return;
+    state.coins -= upCost(u);
+    state.up[id] = lvl(id) + 1;
+    save();
+    renderAll();
+  }
+
+  function renderEggs() {
+    const triple = lvl("triple") > 0;
+    $("eggs").innerHTML = `<p class="note">Hatch eggs to get pets. Equip up to ${maxEquipped()} pets in the Pets tab to boost your coins.${lvl("luck") ? ` Egg Luck is making rare pets more likely.` : ""}</p>` +
+      EGGS.map(egg => {
+        const w = eggWeights(egg);
+        const total = w.reduce((s, d) => s + d[1], 0);
+        const odds = w.map(([t, c]) => {
+          const pct = c / total * 100;
+          return `<span class="${PETS[t].rarity}">${PETS[t].emoji} ${PETS[t].name} ${pct < 10 ? pct.toFixed(1) : Math.round(pct)}%</span>`;
+        }).join(" · ");
+        return `<div class="card"><div class="icon">${egg.emoji}</div><div class="info">
+          <div class="title">${egg.name}</div><div class="desc">${odds}</div></div>
+          <div class="btnCol">
+            <button class="buy" data-egg="${egg.id}" data-n="1">${fmt(egg.cost)}</button>
+            ${triple ? `<button class="buy small" data-egg="${egg.id}" data-n="3">x3 · ${fmt(egg.cost * 3)}</button>` : ""}
+          </div></div>`;
+      }).join("");
+    $("eggs").querySelectorAll("[data-egg]").forEach(b => b.onclick = () => hatch(b.dataset.egg, +b.dataset.n));
+  }
+
+  function renderPets() {
+    const sorted = [...state.pets].sort((a, b) =>
+      (b.equipped - a.equipped) || (PETS[b.type].boost - PETS[a.type].boost));
+    const tools = state.pets.length ? `<div class="toolRow">
+        <button class="buy small" id="equipBest">Equip best</button>
+        <button class="buy small red" id="releaseWeak">Release spare pets weaker than your team</button></div>` : "";
+    $("pets").innerHTML = `<p class="note">${state.pets.length}/${MAX_PETS} pets, ${equippedCount()}/${maxEquipped()} equipped. Pet boost: <b>${fmtMult(petBoost())}</b></p>${tools}` +
+      (state.pets.length === 0 ? `<p class="note">No pets yet. Go hatch an egg!</p>` :
+      `<div class="petGrid">` + sorted.map(p => {
+        const d = PETS[p.type];
+        return `<div class="pet ${p.equipped ? "equipped" : ""}">
+          <div class="e">${d.emoji}</div><div class="n ${d.rarity}">${d.name}</div>
+          <div class="b">${d.rarity} · +${fmtRate(d.boost)}x</div>
+          <div class="row">
+            <button class="buy small ${p.equipped ? "red" : ""}" data-equip="${p.id}">${p.equipped ? "Unequip" : "Equip"}</button>
+            ${p.equipped ? "" : `<button class="buy small red" data-release="${p.id}" title="Release this pet">✕</button>`}
+          </div></div>`;
+      }).join("") + `</div>`);
+    $("pets").querySelectorAll("[data-equip]").forEach(b => b.onclick = () => toggleEquip(+b.dataset.equip));
+    $("pets").querySelectorAll("[data-release]").forEach(b => b.onclick = () => release(+b.dataset.release));
+    const eb = $("equipBest"); if (eb) eb.onclick = equipBest;
+    const rw = $("releaseWeak"); if (rw) rw.onclick = releaseWeak;
+  }
+
+  function renderRebirth() {
+    const next = rebirthBonus(state.rebirths + 1);
+    const keptList = "Extra Pet Slots, Triple Hatch" + (shopLvl("keepgold") ? ", Golden Touch" : "") + " and everything in the Rebirth Shop";
+    $("rebirth").innerHTML = `
+      <div class="card"><div class="icon">🔁</div><div class="info">
+        <div class="title">Rebirth (${state.rebirths} so far)</div>
+        <div class="desc">Resets your coins, upgrades <b>and pets</b>, but keeps ${keptList}.
+        Your rebirth boost goes from ${fmtMult(rebirthBonus())} to ${fmtMult(next)}, and you earn
+        <span class="tokens" id="rbTokens"></span> for the shop (1 more for every time you double the price before rebirthing).</div>
+        <div class="desc" id="rbProgress" style="margin-top:4px"></div></div>
+        <button class="buy" id="doRebirth">${fmt(rebirthCost())}</button></div>
+      <h2 class="shopTitle">🏪 Rebirth Shop · <span class="tokens" id="tokenCount"></span></h2>
+      <p class="note">Everything here is permanent and never resets.</p>` +
+      SHOP.map(u => {
+        const l = shopLvl(u.id), maxed = l >= u.max;
+        const lvText = u.max === 1 ? "" : ` (Lv ${l}/${u.max})`;
+        return `<div class="card"><div class="icon">${u.icon}</div><div class="info">
+          <div class="title">${u.name}${lvText}</div><div class="desc">${u.desc(l)}</div></div>
+          <button class="buy" data-shop="${u.id}">${maxed ? "MAX" : "🎟️ " + u.cost(l)}</button></div>`;
+      }).join("") + `
+      <div class="card" style="margin-top:18px"><div class="icon">🗑️</div><div class="info">
+        <div class="title">Start over</div><div class="desc">Deletes all progress on this device.</div></div>
+        <button class="buy red" id="wipe">Reset</button></div>`;
+
+    $("doRebirth").onclick = async () => {
+      if (state.coins < rebirthCost()) return;
+      const earned = tokensForRebirth();
+      const ok = await ask(`Rebirth now? Your coins, upgrades and ALL your pets reset. You get a ${fmtMult(next)} rebirth boost and ${earned} token${earned === 1 ? "" : "s"}.`, "Rebirth!");
+      if (!ok || state.coins < rebirthCost()) return;
+      state.rebirths++;
+      state.tokens += earned;
+      UPGRADES.forEach(u => {
+        if (u.keep || (u.id === "golden" && shopLvl("keepgold"))) return;
+        state.up[u.id] = 0;
+      });
+      state.pets = [];
+      state.up.auto = Math.max(state.up.auto, shopLvl("autostart") * 5);
+      state.coins = headStart(shopLvl("start"));
+      save(); renderAll();
+      toast(`Rebirthed! You got ${earned} token${earned === 1 ? "" : "s"}. Rebirth boost is now ${fmtMult(rebirthBonus())}.`);
+    };
+    $("rebirth").querySelectorAll("[data-shop]").forEach(b => b.onclick = () => buyShop(b.dataset.shop));
+    $("wipe").onclick = async () => {
+      if (!(await ask("Delete ALL progress, including pets and rebirths? This can't be undone.", "Delete everything"))) return;
+      state = fresh(); save(); renderAll(); toast("Progress reset");
+    };
+  }
+
+  function buyShop(id) {
+    const u = SHOP.find(x => x.id === id);
+    const l = shopLvl(id);
+    if (!u || l >= u.max || state.tokens < u.cost(l)) return;
+    state.tokens -= u.cost(l);
+    state.shop[id] = l + 1;
+    save(); renderAll();
+    toast(`Bought ${u.name}!`);
+  }
+
+  function renderParade() {
+    $("petParade").innerHTML = state.pets.filter(p => p.equipped).map(p => `<span>${PETS[p.type].emoji}</span>`).join("");
+  }
+
+  function refreshNumbers() {
+    $("coins").textContent = fmt(state.coins);
+    $("perTap").textContent = fmtRate(perTap());
+    $("perSec").textContent = fmtRate(perSec());
+    $("mult").textContent = fmtMult(multiplier());
+    document.querySelectorAll("[data-up]").forEach(b => {
+      const u = UPGRADES.find(x => x.id === b.dataset.up);
+      b.disabled = lvl(u.id) >= u.max || state.coins < upCost(u);
+    });
+    const rb = $("doRebirth");
+    if (rb) {
+      const short = rebirthCost() - state.coins;
+      rb.disabled = short > 0;
+      $("rbProgress").innerHTML = short > 0
+        ? `You need <b>${fmt(Math.ceil(short))}</b> more coins to rebirth.`
+        : `<b>Ready to rebirth!</b>`;
+      const t = tokensForRebirth();
+      $("rbTokens").textContent = `${t} token${t === 1 ? "" : "s"}`;
+      $("tokenCount").textContent = `${state.tokens} token${state.tokens === 1 ? "" : "s"}`;
+    }
+    document.querySelectorAll("[data-shop]").forEach(b => {
+      const u = SHOP.find(x => x.id === b.dataset.shop), l = shopLvl(u.id);
+      b.disabled = l >= u.max || state.tokens < u.cost(l);
+    });
+    document.querySelectorAll("[data-egg]").forEach(b => {
+      const egg = EGGS.find(e => e.id === b.dataset.egg), n = +b.dataset.n;
+      b.disabled = state.coins < egg.cost * n || state.pets.length + n > MAX_PETS;
+    });
+  }
+
+  function renderAll() {
+    renderUpgrades(); renderEggs(); renderPets(); renderRebirth(); renderParade(); refreshNumbers();
+  }
+
+  // ---------- pets ----------
+  let hatching = false;
+  function rollPet(egg) {
+    const w = eggWeights(egg);
+    const total = w.reduce((s, d) => s + d[1], 0);
+    let roll = Math.random() * total;
+    for (const [t, c] of w) { roll -= c; if (roll <= 0) return t; }
+    return w[0][0];
+  }
+
+  function hatch(eggId, n = 1) {
+    const egg = EGGS.find(e => e.id === eggId);
+    if (hatching || !egg) return;
+    if (n > 1 && !lvl("triple")) return;
+    if (state.pets.length + n > MAX_PETS) { toast("Not enough room for more pets. Release some first."); return; }
+    if (state.coins < egg.cost * n) { toast("Not enough coins!"); return; }
+    state.coins -= egg.cost * n;
+
+    const got = [];
+    for (let i = 0; i < n; i++) {
+      const pet = { id: state.nextId++, type: rollPet(egg), equipped: false };
+      state.pets.push(pet);
+      if (equippedCount() < maxEquipped()) {
+        pet.equipped = true;
+      } else {
+        // swap out the weakest equipped pet if the new one is stronger
+        const weakest = state.pets.filter(x => x.equipped)
+          .reduce((a, b) => PETS[a.type].boost <= PETS[b.type].boost ? a : b);
+        if (PETS[pet.type].boost > PETS[weakest.type].boost) {
+          weakest.equipped = false;
+          pet.equipped = true;
+          pet.swapped = PETS[weakest.type].name;
+        }
+      }
+      got.push(pet);
+    }
+    // build labels from the final equipped state, after every hatch in the batch is done
+    got.forEach(p => { p._swapped = p.equipped ? p.swapped : undefined; delete p.swapped; });
+    save();
+
+    hatching = true;
+    const m = $("modal"), eggEl = $("modalEgg"), text = $("modalText"), hint = $("modalHint");
+    eggEl.textContent = egg.emoji.repeat(n); eggEl.className = "shake" + (n > 1 ? " multi" : "");
+    text.textContent = "Hatching..."; hint.style.visibility = "hidden";
+    m.classList.add("show");
+    setTimeout(() => {
+      eggEl.textContent = got.map(p => PETS[p.type].emoji).join("");
+      eggEl.className = "pop" + (n > 1 ? " multi" : "");
+      text.innerHTML = got.map(p => {
+        const d = PETS[p.type];
+        const article = /^[AEIOU]/.test(d.rarity) ? "an" : "a";
+        return `You got ${article} <span class="${d.rarity}">${d.rarity} ${d.name}</span>! <small>+${fmtRate(d.boost)}x${!p.equipped ? "" : p._swapped ? ` (equipped, replacing your ${p._swapped})` : " (equipped)"}</small>`;
+      }).join("<br>");
+      got.forEach(p => delete p._swapped);
+      hint.style.visibility = "visible";
+      hatching = false;
+      renderAll();
+    }, 950);
+    refreshNumbers();
+  }
+  $("modal").addEventListener("click", () => { if (!hatching) $("modal").classList.remove("show"); });
+
+  function toggleEquip(id) {
+    const p = state.pets.find(x => x.id === id);
+    if (!p) return;
+    if (!p.equipped && equippedCount() >= maxEquipped()) { toast(`You can only equip ${maxEquipped()} pets. Unequip one first.`); return; }
+    p.equipped = !p.equipped;
+    renderAll();
+  }
+  function release(id) {
+    const p = state.pets.find(x => x.id === id);
+    if (!p || p.equipped) return;
+    const d = PETS[p.type];
+    const go = () => { state.pets = state.pets.filter(x => x.id !== id); renderAll(); };
+    if (d.rarity === "Legendary" || d.rarity === "Mythic") {
+      ask(`Release your ${d.rarity} ${d.name}?`, "Release").then(ok => { if (ok) go(); });
+      return;
+    }
+    go();
+  }
+  async function releaseWeak() {
+    const team = state.pets.filter(p => p.equipped);
+    if (!team.length) { toast("Equip some pets first, so I know which ones are weaker."); return; }
+    const floor = Math.min(...team.map(p => PETS[p.type].boost));
+    const weak = state.pets.filter(p => !p.equipped && PETS[p.type].boost < floor);
+    if (!weak.length) { toast("None of your spare pets are weaker than your equipped ones."); return; }
+    if (!(await ask(`Release ${weak.length} spare pets that are weaker than all of your equipped pets (below +${fmtRate(floor)}x)?`, "Release"))) return;
+    const ids = new Set(weak.map(p => p.id));
+    state.pets = state.pets.filter(p => !ids.has(p.id));
+    renderAll();
+    toast(`Released ${weak.length} pets.`);
+  }
+  function equipBest() {
+    state.pets.forEach(p => p.equipped = false);
+    [...state.pets].sort((a, b) => PETS[b.type].boost - PETS[a.type].boost)
+      .slice(0, maxEquipped()).forEach(p => p.equipped = true);
+    renderAll();
+  }
+
+  // ---------- loop ----------
+  // Uses real clock time, so earnings keep counting while the tab is in the
+  // background or the phone is locked (up to the 2-hour cap).
+  function earnFor(seconds, announce) {
+    if (seconds <= 0 || perSec() <= 0) return;
+    const earned = perSec() * Math.min(seconds, OFFLINE_CAP_SEC);
+    state.coins += earned;
+    if (announce && seconds > 30) toast(`Welcome back! Your auto tappers earned ${fmt(earned)} coins.`);
+    refreshNumbers();
+  }
+  let last = Date.now();
+  function tick() {
+    const now = Date.now();
+    const dt = (now - last) / 1000;
+    last = now;
+    earnFor(dt, true);
+    refreshNumbers();
+  }
+  setInterval(tick, 100);
+  setInterval(save, 5000);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) save(); else tick(); });
+  window.addEventListener("beforeunload", save);
+
+  // earnings while the game was closed
+  const away = (Date.now() - (state.lastSeen || Date.now())) / 1000;
+  setTimeout(() => earnFor(away, true), 400);
+
+  renderAll();
+  // exposed for automated testing only
+  window.__tapPets = { get state() { return state; }, tokensForRebirth, SHOP, perTap, perSec, multiplier, maxEquipped, critChance, eggWeights, EGGS };
+})();
+</script>
+</body>
+</html>
