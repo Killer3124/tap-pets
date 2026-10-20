@@ -94,6 +94,10 @@
   .cbBtns .buy { flex: 1; padding: 12px; font-size: 16px; }
   h2.shopTitle { font-size: 18px; margin: 18px 2px 4px; }
   .tokens { color: #67e8f9; font-weight: 800; }
+  .codeBox { margin-top: 18px; }
+  .codeRow { display: flex; gap: 8px; margin-top: 6px; }
+  #codeInput { flex: 1; min-width: 0; padding: 10px; border-radius: 10px; border: none; font-size: 16px;
+    text-transform: uppercase; background: #1e1b4b; color: #fff; }
   #toast {
     position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #111827; padding: 10px 16px;
     border-radius: 10px; font-weight: 600; opacity: 0; transition: opacity .25s; z-index: 200; pointer-events: none;
@@ -133,6 +137,12 @@
   <section id="eggs" class="panel"></section>
   <section id="pets" class="panel"></section>
   <section id="rebirth" class="panel"></section>
+
+  <div class="card codeBox"><div class="icon">🎁</div><div class="info">
+    <div class="title">Codes</div>
+    <div class="codeRow"><input id="codeInput" placeholder="Type a code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24">
+    <button class="buy" id="codeBtn">Redeem</button></div>
+    <div class="desc" id="codeMsg"></div></div></div>
 </div>
 
 <div id="modal"><div id="modalEgg">🥚</div><div id="modalText"></div><div id="modalHint">Tap anywhere to continue</div></div>
@@ -229,7 +239,7 @@
   ];
   const freshShop = () => Object.fromEntries(SHOP.map(u => [u.id, 0]));
   const freshUp = () => Object.fromEntries(UPGRADES.map(u => [u.id, 0]));
-  const fresh = () => ({ coins: 0, up: freshUp(), shop: freshShop(), tokens: 0, rebirths: 0, pets: [], nextId: 1, lastSeen: Date.now() });
+  const fresh = () => ({ coins: 0, up: freshUp(), shop: freshShop(), tokens: 0, codes: [], rebirths: 0, pets: [], nextId: 1, lastSeen: Date.now() });
   let state = load();
 
   // ---------- math ----------
@@ -272,6 +282,7 @@
       const s = Object.assign(fresh(), data);
       s.up = Object.assign(freshUp(), data.up || {});
       s.shop = Object.assign(freshShop(), data.shop || {});
+      s.codes = Array.isArray(data.codes) ? data.codes : [];
       // players who rebirthed before the shop existed get 1 token per rebirth
       if (data.tokens === undefined) s.tokens = s.rebirths || 0;
       // saves from the first version stored these separately
@@ -465,6 +476,35 @@
     };
   }
 
+  // Each code works once per save
+  const CODES = {
+    WELCOME:    { text: "1K coins",           give: () => { state.coins += 1000; } },
+    TAPPETS:    { text: "10K coins",          give: () => { state.coins += 10000; } },
+    TOKEN:      { text: "2 rebirth tokens",   give: () => { state.tokens += 2; } },
+    KILLER3124: { text: "a free Golden Egg pet", give: () => {
+      if (state.pets.length >= MAX_PETS) return "Your pet inventory is full. Release a pet first.";
+      const pet = { id: state.nextId++, type: rollPet(EGGS.find(e => e.id === "golden")), equipped: false };
+      state.pets.push(pet);
+      if (equippedCount() < maxEquipped()) pet.equipped = true;
+      return `You got a ${PETS[pet.type].rarity} ${PETS[pet.type].name} ${PETS[pet.type].emoji}!`;
+    } },
+  };
+  function redeemCode() {
+    const input = $("codeInput"), msg = $("codeMsg");
+    const code = input.value.trim().toUpperCase();
+    if (!code) return;
+    const c = CODES[code];
+    if (!c) { msg.textContent = "That code doesn't exist."; return; }
+    if (state.codes.includes(code)) { msg.textContent = "You already used that code."; return; }
+    const result = c.give();
+    if (typeof result === "string" && result.startsWith("Your pet inventory")) { msg.textContent = result; return; }
+    state.codes.push(code);
+    input.value = "";
+    msg.textContent = typeof result === "string" ? result : `Code redeemed! You got ${c.text}.`;
+    save(); renderAll();
+    toast("Code redeemed!");
+  }
+
   function buyShop(id) {
     const u = SHOP.find(x => x.id === id);
     const l = shopLvl(id);
@@ -630,6 +670,8 @@
     earnFor(dt, true);
     refreshNumbers();
   }
+  $("codeBtn").onclick = redeemCode;
+  $("codeInput").addEventListener("keydown", e => { if (e.key === "Enter") redeemCode(); });
   setInterval(tick, 100);
   setInterval(save, 5000);
   document.addEventListener("visibilitychange", () => { if (document.hidden) save(); else tick(); });
@@ -641,7 +683,7 @@
 
   renderAll();
   // exposed for automated testing only
-  window.__tapPets = { get state() { return state; }, tokensForRebirth, SHOP, perTap, perSec, multiplier, maxEquipped, critChance, eggWeights, EGGS };
+  window.__tapPets = { get state() { return state; }, CODES, tokensForRebirth, SHOP, perTap, perSec, multiplier, maxEquipped, critChance, eggWeights, EGGS };
 })();
 </script>
 </body>
