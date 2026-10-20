@@ -420,7 +420,7 @@
         const d = PETS[p.type];
         return `<div class="pet ${p.equipped ? "equipped" : ""}">
           <div class="e">${d.emoji}</div><div class="n ${d.rarity}">${d.name}</div>
-          <div class="b">${d.rarity} · ${d.passive ? `x${d.passive} always on` : `+${fmtRate(d.boost)}x`}</div>
+          <div class="b">${d.rarity} · ${d.passive ? `x${d.passive} always on` : `+${d.boost >= 1000 ? d.boost : fmtRate(d.boost)}x`}</div>
           <div class="row">
             ${d.passive ? "" : `<button class="buy small ${p.equipped ? "red" : ""}" data-equip="${p.id}">${p.equipped ? "Unequip" : "Equip"}</button>`}
             ${p.equipped || PETS[p.type].secret ? "" : `<button class="buy small red" data-release="${p.id}" title="Release this pet">✕</button>`}
@@ -629,7 +629,7 @@
       text.innerHTML = got.map(p => {
         const d = PETS[p.type];
         const article = /^[AEIOU]/.test(d.rarity) ? "an" : "a";
-        return `You got ${article} <span class="${d.rarity}">${d.rarity} ${d.name}</span>! <small>+${fmtRate(d.boost)}x${!p.equipped ? "" : p._swapped ? ` (equipped, replacing your ${p._swapped})` : " (equipped)"}</small>`;
+        return `You got ${article} <span class="${d.rarity}">${d.rarity} ${d.name}</span>! <small>+${d.boost >= 1000 ? d.boost : fmtRate(d.boost)}x${!p.equipped ? "" : p._swapped ? ` (equipped, replacing your ${p._swapped})` : " (equipped)"}</small>`;
       }).join("<br>");
       got.forEach(p => delete p._swapped);
       hint.style.visibility = "visible";
