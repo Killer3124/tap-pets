@@ -254,7 +254,7 @@
   const tapPower = () => 1 + lvl("tap");
   const autoRate = () => lvl("auto");
   const critChance = () => lvl("crit") * 0.015;
-  const rebirthCost = () => 100000 * Math.pow(5, state.rebirths);
+  const rebirthCost = () => 150000 * Math.pow(5, state.rebirths);
   const rebirthBonus = (r = state.rebirths) => Math.pow(1.5, r);
   const hasPet = t => state.pets.some(p => p.type === t);
   const duo = () => hasPet("killer") && hasPet("pretty");
