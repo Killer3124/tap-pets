@@ -481,7 +481,7 @@
     WELCOME:    { text: "1K coins",           give: () => { state.coins += 1000; } },
     TAPPETS:    { text: "10K coins",          give: () => { state.coins += 10000; } },
     TOKEN:      { text: "2 rebirth tokens",   give: () => { state.tokens += 2; } },
-    KILLER3124: { text: "a free Golden Egg pet", give: () => {
+    GOLDENEGG:  { text: "a free Golden Egg pet", give: () => {
       if (state.pets.length >= MAX_PETS) return "Your pet inventory is full. Release a pet first.";
       const pet = { id: state.nextId++, type: rollPet(EGGS.find(e => e.id === "golden")), equipped: false };
       state.pets.push(pet);
